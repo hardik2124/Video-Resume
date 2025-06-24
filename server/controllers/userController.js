@@ -1,21 +1,34 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import otpGenerator from "otp-generator";
-import { sendOtpViaMail } from '../utills/sendOtpViaEmail.js';
+import { sendOtpViaMail } from '../utils/sendOtpViaEmail.js';
 import OTP from '../models/otp.js';
 import { sendSuccess, sendError } from '../utils/responseHandler.js';
 
 export const RegisterUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, otp } = req.body;
 
-    if (!name?.trim() || !email?.trim() || !password?.trim()) {
+    if (!name?.trim() || !email?.trim() || !password?.trim() || !otp?.trim()) {
       return sendError(res, 'Please provide all required fields', 400);
+    }
+    if (password.length < 6) {
+      return sendError(res, 'Password must be at least 6 characters long', 400);
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return sendError(res, 'Invalid email format', 400);
     }
 
     if (await User.findOne({ email })) {
       return sendError(res, 'User already exists', 409);
+    }
+
+    const checkOTP = await OTP.findOne({ email }).sort({ createdAt: -1 }).limit(1);
+    if (!checkOTP || checkOTP.otp !== otp) {
+      return sendError(res, 'Invalid or expired OTP', 409);
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -80,32 +93,37 @@ export const LoginUser = async (req, res) => {
 
 
 
-import { OAuth2Client } from 'google-auth-library';
-import User from '../models/user.js';
-import jwt from 'jsonwebtoken';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const GoogleLogin = async (req, res) => {
   try {
-    const { idToken } = req.body;  // Receive ID token from frontend
+    const { token } = req.body;
 
-    if (!idToken) {
+    if (!token) {
       return res.status(400).json({
         success: false,
-        message: 'Missing Google ID Token'
+        message: 'Missing Google token',
       });
     }
 
-    // Verify ID Token with Google
+    // Verify token with Google servers
     const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    const { sub: googleId, email, name, picture } = payload;
+    const { email, name, sub: googleId } = payload;
 
+    if (!email || !googleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Google data',
+      });
+    }
+
+    // Find or Create User
     let user = await User.findOne({ email });
 
     if (!user) {
@@ -113,15 +131,11 @@ export const GoogleLogin = async (req, res) => {
         name,
         email,
         googleId,
-        profileImage: picture,  // you can store profile picture if you want
       });
-      await user.save();
-    } else if (!user.googleId) {
-      user.googleId = googleId;
       await user.save();
     }
 
-    const token = jwt.sign(
+    const jwtToken = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
@@ -133,23 +147,20 @@ export const GoogleLogin = async (req, res) => {
         name: user.name,
         email: user.email,
         subscriptionPlan: user.subscriptionPlan,
-        profileImage: user.profileImage
       },
-      token,
+      token: jwtToken,
       success: true,
-      message: 'Google Login Successful'
+      message: 'Logged in with Google successfully',
     });
 
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Google login failed',
-      error: error.message
+      error: error.message,
     });
   }
-}
-
-
+};
 
 export const sendOTP = async (req, res) => {
   try {
@@ -162,23 +173,21 @@ export const sendOTP = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
 
     // Save OTP into database (Optional: if you want verification flow)
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER, // your Gmail
-        pass: process.env.EMAIL_PASS  // your App Password
-      }
+    await OTP.create({
+      email: email,
+      otp: otp,
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Your Verification OTP',
-      text: `Your OTP is: ${otp}`
-    };
 
-    await transporter.sendMail(mailOptions);
+    const response = await sendOtpViaMail(email, otp);
+
+    if (!response) {
+      console.error("Failed to send OTP email");
+      return res.status(400).json({
+        success: false,
+        message: "something went wrong while sending otp mail !!",
+      });
+    }
 
     return sendSuccess(res, { otp }, 'OTP sent successfully');
   } catch (error) {

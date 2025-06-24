@@ -1,5 +1,5 @@
 import {mailSender} from "../config/MailSender.js";
-import otpTemplate from "../utills/template/otpTemplate.js"
+import otpTemplate from "./template/otpTemplate.js"
 
 export const sendOtpViaMail = async (email, otp) => {
 
