@@ -1,67 +1,79 @@
 import express from 'express';
 import cors from 'cors';
-import { DBConnection } from './config/dbConnection.js';
-import { errorHandler } from './middleware/errorMiddleware.js';
-import dotenv from 'dotenv';
-dotenv.config();
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-app.use(cookieParser());
+import mongoose from 'mongoose';
 
+import './config/env.js'; // ✅ 1️⃣ Load environment variables
+import { DBConnection } from './config/dbConnection.js';
+import { logger } from './config/logger.js';
+import { errorHandler } from './middleware/errorMiddleware.js';
+import { apiLimiter } from './middleware/apiLimmiter.js';
 
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(cookieParser());
+// ✅ 2️⃣ Top-level await DB connection
 await DBConnection();
 
+// ✅ Initialize Express app
+const app = express();
 
-import authRoutes from "./routes/userRoutes.js"
+// ✅ 3️⃣ Security Middlewares
+app.use(helmet());
+app.use(cors({ credentials: true, origin: true }));
 
+// ✅ 4️⃣ Parsing Middlewares
+app.use(express.json());
+app.use(cookieParser());
 
+// ✅ 5️⃣ Rate Limiting
+app.use(apiLimiter);
+
+// ✅ 6️⃣ Routes
+import authRoutes from './routes/userRoutes.js';
 app.use('/api/auth', authRoutes);
 
-
-app.use(errorHandler);
-
-const port = process.env.PORT;
-if (!port) {
-  console.error('Error: PORT environment variable is not set.');
-  process.exit(1);
-}
-
-app.listen(port || 6000, () => {
-  console.log(`Server is running on http://localhost:${process.env.PORT}`);
+// ✅ 7️⃣ Health check route
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    dbConnected: mongoose.connection.readyState === 1
+  });
 });
 
+// ✅ 8️⃣ Simple homepage
 app.get('/', (req, res) => {
   res.send(`
-        <html>
-            <head>
-            <title>Welcome</title>
-            <style>
-                body {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-                background-color: #f9f9f9;
-                font-family: Arial, sans-serif;
-                }
-                h1 {
-                font-style: italic;
-                color: #333;
-                }
-            </style>
-            </head>
-            <body>
-            <h1><u><i>Welcome to the<b> ai Resume Video </b> server!</i></u></h1>
-            </body>
-        </html>
-    `);
+    <html>
+      <head>
+        <title>Welcome</title>
+        <style>
+          body {
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; background-color: #f9f9f9;
+            font-family: Arial, sans-serif;
+          }
+          h1 { font-style: italic; color: #333; }
+        </style>
+      </head>
+      <body>
+        <h1><u><i>Welcome to the <b>AI Resume Video</b> SaaS Server!</i></u></h1>
+      </body>
+    </html>
+  `);
+});
 
-})
+// ✅ 9️⃣ Global Error Handler (must be after all routes)
+app.use(errorHandler);
 
+// ✅ 🔄 Graceful Shutdown
+process.on('SIGINT', async () => {
+  logger.info('🔄 Gracefully shutting down...');
+  await mongoose.connection.close();
+  process.exit(0);
+});
 
-
+// ✅ Start server
+const port = process.env.PORT || 6000;
+app.listen(port, () => {
+  logger.info(`🚀 Server running at http://localhost:${port} [${process.env.NODE_ENV}]`);
+});

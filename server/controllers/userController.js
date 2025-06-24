@@ -207,20 +207,19 @@ export const RefreshAccessToken = async (req, res) => {
       return sendError(res, 'No refresh token found', 401);
     }
 
-    jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return sendError(res, 'Invalid refresh token', 403);
-      }
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
 
-      const newAccessToken = generateAccessToken(decoded.userId);
-      return sendSuccess(res, { accessToken: newAccessToken }, 'Access token refreshed');
-    });
+    const newAccessToken = generateAccessToken(decoded.userId);
+
+    return sendSuccess(res, { accessToken: newAccessToken }, 'Access token refreshed');
 
   } catch (error) {
-    return sendError(res, 'Failed to refresh token', 500, error.message);
+    if (error.name === 'TokenExpiredError') {
+      return sendError(res, 'Refresh token expired', 403);
+    }
+    return sendError(res, 'Invalid refresh token', 403);
   }
 };
-
 export const LogoutUser = (req, res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,
