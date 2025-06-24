@@ -4,12 +4,15 @@ import { DBConnection } from './config/dbConnection.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import dotenv from 'dotenv';
 dotenv.config();
+import cookieParser from 'cookie-parser';
+app.use(cookieParser());
+
 
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use(cookieParser());
 await DBConnection();
 
 

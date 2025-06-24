@@ -17,7 +17,6 @@ export const RegisterUser = async (req, res) => {
     if (password.length < 6) {
       return sendError(res, 'Password must be at least 6 characters long', 400);
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return sendError(res, 'Invalid email format', 400);
     }
@@ -37,24 +36,40 @@ export const RegisterUser = async (req, res) => {
     const user = new User({ name, email, passwordHash });
     await user.save();
 
-    const token = jwt.sign(
+    // 🔐 Generate Tokens
+    const accessToken = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
     );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    );
+
+    // 🔐 Set Refresh Token in HTTP-Only Cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000  // 30 days
+    });
 
     return sendSuccess(res, {
       id: user._id,
       name: user.name,
       email: user.email,
       subscriptionPlan: user.subscriptionPlan,
-      token
+      accessToken
     }, 'User registered successfully', 201);
 
   } catch (error) {
     return sendError(res, 'Internal server error', 500, error.message);
   }
 };
+
 
 
 export const LoginUser = async (req, res) => {
@@ -73,23 +88,39 @@ export const LoginUser = async (req, res) => {
     if (!isMatch)
       return sendError(res, 'Invalid credentials', 401);
 
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
     );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    );
+
+    // Set refreshToken in HttpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000  // 30 days
+    });
 
     return sendSuccess(res, {
       id: user._id,
       name: user.name,
       email: user.email,
       subscriptionPlan: user.subscriptionPlan,
-      token
+      accessToken
     }, 'User logged in successfully');
   } catch (error) {
     return sendError(res, 'Internal server error', 500, error.message);
   }
 };
+
+
 
 
 
@@ -101,13 +132,10 @@ export const GoogleLogin = async (req, res) => {
     const { token } = req.body;
 
     if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing Google token',
-      });
+      return sendError(res, 'Missing Google token', 400);
     }
 
-    // Verify token with Google servers
+    // Verify token with Google
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -117,10 +145,7 @@ export const GoogleLogin = async (req, res) => {
     const { email, name, sub: googleId } = payload;
 
     if (!email || !googleId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid Google data',
-      });
+      return sendError(res, 'Invalid Google data', 400);
     }
 
     // Find or Create User
@@ -135,30 +160,37 @@ export const GoogleLogin = async (req, res) => {
       await user.save();
     }
 
-    const jwtToken = jwt.sign(
+    // Create Access & Refresh Tokens
+    const accessToken = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
     );
 
-    return res.status(200).json({
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        subscriptionPlan: user.subscriptionPlan,
-      },
-      token: jwtToken,
-      success: true,
-      message: 'Logged in with Google successfully',
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    );
+
+    // Set Refresh Token in HttpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000  // 30 days
     });
 
+    return sendSuccess(res, {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      subscriptionPlan: user.subscriptionPlan,
+      accessToken
+    }, 'Logged in with Google successfully');
+
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Google login failed',
-      error: error.message,
-    });
+    return sendError(res, 'Google login failed', 500, error.message);
   }
 };
 
@@ -192,5 +224,29 @@ export const sendOTP = async (req, res) => {
     return sendSuccess(res, { otp }, 'OTP sent successfully');
   } catch (error) {
     return sendError(res, 'Failed to send OTP', 500, error.message);
+  }
+};
+
+
+export const RefreshToken = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+
+    if (!token) return sendError(res, 'Missing refresh token', 401);
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) return sendError(res, 'Invalid refresh token', 403);
+
+      const accessToken = jwt.sign(
+        { userId: decoded.userId },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+      );
+
+      return sendSuccess(res, { accessToken }, 'Access token refreshed');
+    });
+
+  } catch (error) {
+    return sendError(res, 'Internal server error', 500, error.message);
   }
 };
