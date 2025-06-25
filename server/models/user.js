@@ -12,7 +12,9 @@ const userSchema = mongoose.Schema({
   },
   passwordHash: {
     type: String,
-    required: true
+    required: function () {
+      return !this.isGoogleAuth;
+    },
   },
   subscriptionPlan: {
     type: String,
@@ -20,7 +22,7 @@ const userSchema = mongoose.Schema({
   },
   googleId: {
     type: String
-  }, 
+  },
   isGoogleUser: {
     type: Boolean,
     default: false

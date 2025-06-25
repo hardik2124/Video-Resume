@@ -4,6 +4,7 @@ import { FaEnvelope, FaLock } from 'react-icons/fa';
 import { googleLogin, loginUser } from '@/features/auth/authSlice';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import { useNavigate } from 'react-router-dom';
 
 
 const Login = () => {
@@ -16,10 +17,17 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(loginUser(formData));
+    const resultAction = await dispatch(loginUser(formData));
+
+    if (loginUser.fulfilled.match(resultAction)) {
+      navigate('/dashboard'); // ✅ Redirect on success
+    }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-[#ecf0f3] px-4">
@@ -79,21 +87,24 @@ const Login = () => {
 
         <hr className="my-6 border-gray-300" />
 
-        
-          <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              const token = credentialResponse.credential;
-              const user = jwtDecode(token); // Optional: see name/email
 
-              console.log("Google user:", user);
+        <GoogleLogin
+          onSuccess={async (credentialResponse) => {
+            const token = credentialResponse.credential;
+            const resultAction = await dispatch(googleLogin(token));
 
-              dispatch(googleLogin(token));
-            }}
-            onError={() => {
-              console.error('Google Register Failed');
-            }}
-          />
-        
+            if (googleLogin.fulfilled.match(resultAction)) {
+              navigate('/dashboard');
+            } else {
+              console.error('Google login failed:', resultAction);
+            }
+          }}
+
+          onError={() => {
+            console.error('Google Register Failed');
+          }}
+        />
+
 
       </div>
     </div>
