@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const API_URL = "http://localhost:6000/api/auth";
+const API_URL = "http://localhost:8000/api/auth";
 
 const initialState = {
   user: null,
@@ -36,7 +36,7 @@ export const sendOtp = createAsyncThunk(
   }
 );
 
-const loginUser = createAsyncThunk(
+export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (userData, { rejectWithValue }) => {
     try {
@@ -48,7 +48,7 @@ const loginUser = createAsyncThunk(
   }
 );
 
-const googleLogin = createAsyncThunk(
+export const googleLogin = createAsyncThunk(
   'auth/googleLogin',
   async (token, { rejectWithValue }) => {
     try {
