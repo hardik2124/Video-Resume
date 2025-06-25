@@ -124,7 +124,7 @@ export const GoogleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      user = new User({ name, email, googleId });
+      user = new User({ name, email, googleId: ticket.getPayload().sub ,isGoogleUser: true,  passwordHash: 'GOOGLE_AUTH'});
       await user.save();
     } else if (!user.googleId) {
       user.googleId = googleId;

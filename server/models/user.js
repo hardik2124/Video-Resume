@@ -21,9 +21,10 @@ const userSchema = mongoose.Schema({
   googleId: {
     type: String
   }, 
-  facebookId: {
-    type: String
-  },
+  isGoogleUser: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 

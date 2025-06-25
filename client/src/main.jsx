@@ -10,7 +10,7 @@ const GOOGLE_CLIENT_ID = '847188116892-ps35iooknjha80kbram1vheeotsmvri9.apps.goo
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId="847188116892-ps35iooknjha80kbram1vheeotsmvri9.apps.googleusercontent.com">
       <Provider store={store}>
         <App />
       </Provider>
