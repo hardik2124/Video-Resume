@@ -19,7 +19,7 @@ const app = express();
 // ✅ 3️⃣ Security Middlewares
 app.use(helmet());
 app.use(cors({
-  origin: 'http://localhost:5173', 
+  origin: 'http://localhost:5173',
   credentials: true,
 }));
 
@@ -32,7 +32,9 @@ app.use(apiLimiter);
 
 // ✅ 6️⃣ Routes
 import authRoutes from './routes/userRoutes.js';
+import ResumeScript from './routes/resumescriptroutes.js';
 app.use('/api/auth', authRoutes);
+app.use('/api/resume-scripts', ResumeScript);
 
 // ✅ 7️⃣ Health check route
 app.get('/health', (req, res) => {

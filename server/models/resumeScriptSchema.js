@@ -144,4 +144,7 @@ const resumeScriptSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.model('ResumeScript', resumeScriptSchema);
+
+
+const ResumeScript = mongoose.model('ResumeScript', resumeScriptSchema);
+export default ResumeScript;

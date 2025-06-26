@@ -1,8 +1,7 @@
 import bcrypt from 'bcryptjs';
-import User from '../models/User.js';
+import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
-import otpGenerator from "otp-generator";
 import { sendOtpViaMail } from '../utils/sendOtpViaEmail.js';
 import OTP from '../models/otp.js';
 import { sendSuccess, sendError } from '../utils/responseHandler.js';
@@ -43,7 +42,7 @@ export const RegisterUser = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -82,7 +81,7 @@ export const LoginUser = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -124,7 +123,7 @@ export const GoogleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      user = new User({ name, email, googleId: ticket.getPayload().sub ,isGoogleUser: true,  passwordHash: 'GOOGLE_AUTH'});
+      user = new User({ name, email, googleId: ticket.getPayload().sub, isGoogleUser: true, passwordHash: 'GOOGLE_AUTH' });
       await user.save();
     } else if (!user.googleId) {
       user.googleId = googleId;
@@ -149,7 +148,7 @@ export const GoogleLogin = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000  // 30 days
     });
 
@@ -207,11 +206,18 @@ export const RefreshAccessToken = async (req, res) => {
       return sendError(res, 'No refresh token found', 401);
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    // ✅ Use refresh token secret
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    const newAccessToken = generateAccessToken(decoded.userId);
+    const newAccessToken = generateAccessToken(decoded.userId); // short-lived access token
 
-    return sendSuccess(res, { accessToken: newAccessToken }, 'Access token refreshed');
+    // ✅ Optional: regenerate refresh token if rotating strategy
+
+    return sendSuccess(
+      res,
+      { accessToken: newAccessToken },
+      'Access token refreshed successfully'
+    );
 
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -220,6 +226,7 @@ export const RefreshAccessToken = async (req, res) => {
     return sendError(res, 'Invalid refresh token', 403);
   }
 };
+
 export const LogoutUser = (req, res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,

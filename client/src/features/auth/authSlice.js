@@ -72,6 +72,7 @@ export const refreshAccessToken = createAsyncThunk(
   }
 );
 
+
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async (_, { rejectWithValue }) => {
@@ -149,9 +150,20 @@ const authSlice = createSlice({
       })
 
       // refreshAccessToken
-      .addCase(refreshAccessToken.fulfilled, (state, action) => {
-        state.accessToken = action.payload.accessToken;
+      // refreshAccessToken
+      .addCase(refreshAccessToken.pending, () => {
+        console.log("⏳ Refresh token request sent...");
       })
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        console.log("✅ Token refreshed:", action.payload); // <--- add this
+        state.accessToken = action.payload?.data?.accessToken;
+      })
+      .addCase(refreshAccessToken.rejected, (state, action) => {
+        console.log("❌ Refresh token failed:", action.payload); // <--- add this
+        state.isError = true;
+        state.errorMessage = action.payload?.message;
+      })
+
 
       // logoutUser
       .addCase(logoutUser.fulfilled, (state) => {

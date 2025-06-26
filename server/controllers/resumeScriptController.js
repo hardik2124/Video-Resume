@@ -1,5 +1,5 @@
-import ResumeScript from '../models/ResumeScript.js';
-import User from '../models/User.js';
+import ResumeScript from '../models/resumeScriptSchema.js';
+import User from '../models/user.js';
 import openai from '../utils/openai.js';
 import { sendError, sendSuccess } from '../utils/responseHandler.js';
 

@@ -74,4 +74,5 @@ const videoResumeSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.model('VideoResume', videoResumeSchema);
+const VideoResume = mongoose.model('VideoResume', videoResumeSchema);
+export default VideoResume;

@@ -58,4 +58,6 @@ const resumeTemplateSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model('ResumeTemplate', resumeTemplateSchema);
+
+const ResumeTemplate = mongoose.model('ResumeTemplate', resumeTemplateSchema);
+export default ResumeTemplate;

@@ -1,21 +1,17 @@
 import jwt from 'jsonwebtoken';
+import { sendError } from '../utils/responseHandler.js';
 
 export const verifyRefreshToken = (req, res, next) => {
+  const token = req.cookies.refreshToken;
+
+  if (!token) return sendError(res, 'No refresh token found', 401);
+
   try {
-    const refreshToken = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      return res.status(401).json({ success: false, message: 'No refresh token provided' });
-    }
-
-    jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' });
-      }
-      req.user = { userId: decoded.userId }; // attach decoded userId for controller use
-      next();
-    });
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    req.userId = decoded.userId;
+    next();
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Token verification failed', error: error.message });
+    return sendError(res, 'Invalid refresh token', 403);
   }
 };
+
