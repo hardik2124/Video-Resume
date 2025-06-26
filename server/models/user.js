@@ -26,7 +26,31 @@ const userSchema = mongoose.Schema({
   isGoogleUser: {
     type: Boolean,
     default: false
-  }
+  },
+  role: {
+    type: String, enum: ['free', 'premium', 'admin'], default: 'free'
+  },
+  resumeScripts: [
+    { type: mongoose.Schema.Types.ObjectId, ref: 'ResumeScript' }
+  ],
+  videoResumes: [
+    { type: mongoose.Schema.Types.ObjectId, ref: 'VideoResume' }
+  ],
+  resumes: [
+    { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' }
+  ],
+  interviews: [
+    { type: mongoose.Schema.Types.ObjectId, ref: 'InterviewSession' }
+  ],
+  feedbacks: [
+    { type: mongoose.Schema.Types.ObjectId, ref: 'Feedback' }
+  ],
+  analytics: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'UserAnalytics'
+  },
+  createdAt: {
+    type: Date, default: Date.now
+  },
 }, { timestamps: true });
 
 
