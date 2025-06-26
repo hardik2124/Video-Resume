@@ -1,44 +1,36 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { refreshAccessToken } from '@/features/auth/authSlice'; // ✅ Your thunk
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { useEffect } from 'react';
+import { refreshAccessToken } from '@/features/auth/authSlice';
+
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import MainLayout from './layouts/MainLayout';
+import ResumeScriptForm from './pages/ScriptGenerator';
 import ProtectedRoute from './components/ProtectedRoute';
+import MainLayout from './layouts/MainLayout';
 
 function App() {
   const dispatch = useDispatch();
-  const { user, isLoading } = useSelector((state) => state.auth);
 
-  // 👇 Try to refresh token on first load
   useEffect(() => {
-    console.log("🔁 Dispatching refreshAccessToken...");
     dispatch(refreshAccessToken());
-  },[]);
-
-
-  // ⏳ Wait while token is being checked
-  if (isLoading) return <div className="p-10">Loading...</div>;
+  }, [dispatch]);
 
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-
-      {/* Protected layout */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            <MainLayout>
-              <Dashboard />
-            </MainLayout>
+            <MainLayout />
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="resume-script" element={<ResumeScriptForm />} />
       </Route>
     </Routes>
   );

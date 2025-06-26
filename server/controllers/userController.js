@@ -41,8 +41,9 @@ export const RegisterUser = async (req, res) => {
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false, // only for development
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -80,8 +81,9 @@ export const LoginUser = async (req, res) => {
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false, // only for development
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -147,9 +149,10 @@ export const GoogleLogin = async (req, res) => {
     // Set Refresh Token in HttpOnly cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000  // 30 days
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false, // only for development
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     return sendSuccess(res, {

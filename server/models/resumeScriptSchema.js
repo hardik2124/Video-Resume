@@ -60,7 +60,7 @@ const resumeScriptSchema = new mongoose.Schema({
   // Extras
   certifications: [String],
   skills: [String],
-  languages: [String],
+ 
   hobbies: [String],
 
   // Projects

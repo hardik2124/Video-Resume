@@ -10,7 +10,7 @@ const Sidebar = () => {
 
   const navItems = [
     { to: '/dashboard', icon: <FaHome />, label: 'Dashboard' },
-    { to: '/generate-script', icon: <FaFileAlt />, label: 'Resume Script' },
+    { to: '/resume-script', icon: <FaFileAlt />, label: 'Resume Script' },
     { to: '/create-video', icon: <FaVideo />, label: 'Video Resume' },
     { to: '/analytics', icon: <FaChartBar />, label: 'Analytics' },
   ];
