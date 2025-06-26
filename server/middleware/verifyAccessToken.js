@@ -1,20 +1,14 @@
-import jwt from 'jsonwebtoken';
-import { sendError } from '../middleware/responseHandler.js';
+import { sendError } from '../utils/responseHandler.js';
 
-export const protect = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+// Example: restrictTo('free', 'elite')
+export const restrictTo = (...allowedRoles) => {
+  return (req, res, next) => {
+    const userRole = req.user?.subscriptionPlan;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return sendError(res, 'No token provided', 401);
-  }
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return sendError(res, 'You are not authorized to access this feature', 403);
+    }
 
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
     next();
-  } catch (err) {
-    return sendError(res, 'Token is not valid or expired', 401);
-  }
+  };
 };

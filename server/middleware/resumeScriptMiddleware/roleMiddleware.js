@@ -1,4 +1,4 @@
-import { sendError } from '../utils/responseHandler.js';
+import { sendError } from '../../utils/responseHandler.js';
 
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {

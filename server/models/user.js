@@ -51,6 +51,10 @@ const userSchema = mongoose.Schema({
   createdAt: {
     type: Date, default: Date.now
   },
+  // User schema (add this field)
+  aiResumeGeneratedAt: { type: Date }, // track last use date
+
+
 }, { timestamps: true });
 
 
